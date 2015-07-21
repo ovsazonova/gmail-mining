@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+
 import mailbox
+import re
 
 ## custom functions
 
@@ -38,3 +40,15 @@ print(str(no_label_count)+' Did not have an X-Gmail-Labels label')
 print('added '+str(chat_count)+' messages to chat mailbox.')
 print('added '+str(inbox_count)+' messages to inbox mailbox.')
 print('added '+str(sent_count)+' messages to sent mailbox.')
+
+## things to remember
+"""
+
+sent_out[1].is_multipart() will return true if the email is a nested message
+sent_out[1].get_payload()[0].get_payload() gets payload of 1st sub-message of the conversation
+
+remove <...> tags from html-containing messages
+re.sub('<[^<]+?>','',sent_out[3].get_payload()[1].get_payload())
+
+
+"""
