@@ -76,7 +76,7 @@ for j, message in enumerate(mbox):
         
         continue
 ## save message_df to file
-message_df.to_csv('/Users/olga/Documents/google_mail_archive_07062015/output/inbox_message_df.txt')
+message_df.to_csv('/Users/olga/Documents/google_mail_archive_07062015/gmail-mining/output/inbox_message_df.txt')
     
     
 ## plot # of messages sent/received as a function of non-olga party
