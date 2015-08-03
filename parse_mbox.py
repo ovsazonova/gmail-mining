@@ -6,8 +6,10 @@ import time
 import pandas as pd
 import numpy as np
 import seaborn as sns
+import matplotlib
 import matplotlib.pyplot as plt
 import ggplot
+import pylab
 
 ## custom functions
 def split_mbox(in_mbox_filename, chat_out, inbox_out, sent_out):
@@ -39,7 +41,56 @@ def split_mbox(in_mbox_filename, chat_out, inbox_out, sent_out):
     print('added '+str(sent_count)+' messages to sent mailbox.')
     
     return() 
+def inventory_mbox(mbox):
+    print('Entering mbox_inventory @ '+time.strftime("%H:%M:%S"))
+    multipart_count = 0
+    append_index = 0
+    columns=['key','sender', 'recepient', 'payloadCharCount', 'dateTime', 'multipart','partCount']
+    message_df=pd.DataFrame(data=np.zeros((0, len(columns))), columns=columns)
+    for j, message in enumerate(mbox):
+        #if j > 1000: break
+        if message.is_multipart() is False:
+            message_df.loc[message_df.shape[0]]=[j, message['From'], message['To'], len(message.get_payload()), message['Date'], 0,0]
+            append_index +=1
+        
+        else: # inventory only the first part of a multi-part message
+            message_df.loc[message_df.shape[0]]= [j, message['From'], message['To'], len(message.get_payload()[0].get_payload()), message['Date'], 1, len(message.get_payload())]
+            append_index +=1
+            multipart_count += 1
+        
+            continue
+    return(message_df)        
+    
+def plot_sender_count(inbox_message_df, n):
 
+    plot_df=pd.DataFrame(inbox_message_df.sender.value_counts())
+    plot_df.index.name='value'
+    plot_df.reset_index(inplace=True)
+    plot_df.rename(columns={0:'count'}, inplace=True)
+    plot_df=plot_df.head(n)
+
+    ## pandas plot via matplotlib and pylab
+    plot_df.sort(ascending=0).plot("value", "count", kind="barh", color=sns.color_palette("deep",3), legend=False, title="Messages received from top "+n+" senders").set_ylabel("")
+    plot_f= pylab.gcf()
+    #plot_f.set_size_inches(8,6)
+    plot_f.tight_layout()
+    plot_f.savefig("/Users/olga/Documents/google_mail_archive_07062015/gmail-mining/output/figures/inbox_top"+n+"_senders.png")
+    # ## ggplot
+    # p = ggplot(plot_df, aes(x='value', y='count')) + \
+    #     geom_bar(stat="bar", labels = plot_df['value'].tolist()) + \
+    #     theme(axis_text_x=element_text(angle=90, hjust=1))
+    # print p    
+
+    ## seaborn
+    # sns.set_style("darkgrid")
+    # bar_plot = sns.barplot(x=plot_df['value'],y=plot_df['count'],
+    #                         palette="muted",
+    #                         x_order=plot_df['value'].tolist(),
+    #                         orient="h")
+    # plt.xticks(rotation=90)
+    # plt.show()
+    
+    return()
 
 ## define constants and paths
 in_mbox_filename='/Users/olga/Documents/google_mail_archive_07062015/data/All_mail_Including_Spam_and_Trash.mbox'
@@ -54,56 +105,22 @@ sent_out=mailbox.mbox('/Users/olga/Documents/google_mail_archive_07062015/data/A
 ## separate chats from inbox messages
 #split_mbox(in_mbox_filename, chat_out, inbox_out, sent_out)
 
-## inventory message into dataframe
-print('Entering mbox_inventory @ '+time.strftime("%H:%M:%S"))
-   
-multipart_count = 0
-append_index = 0
-columns=['key','sender', 'recepient', 'payloadCharCount', 'dateTime', 'multipart','partCount']
-message_df=pd.DataFrame(data=np.zeros((0, len(columns))), columns=columns)
-#mbox = mailbox.mbox(in_mbox_filename)
-mbox=inbox_out
-for j, message in enumerate(mbox):
-    #if j > 1000: break
-    if message.is_multipart() is False:
-        message_df.loc[message_df.shape[0]]=[j, message['From'], message['To'], len(message.get_payload()), message['Date'], 0,0]
-        append_index +=1
-        
-    else: # inventory only the first part of a multi-part message
-        message_df.loc[message_df.shape[0]]= [j, message['From'], message['To'], len(message.get_payload()[0].get_payload()), message['Date'], 1, len(message.get_payload())]
-        append_index +=1
-        multipart_count += 1
-        
-        continue
-## save message_df to file
-message_df.to_csv('/Users/olga/Documents/google_mail_archive_07062015/gmail-mining/output/inbox_message_df.txt')
+## inventory message into dataframe and save to file
+# inbox_message_df=inventory_mbox(inbox_out)
+# inbox_message_df.to_csv('/Users/olga/Documents/google_mail_archive_07062015/gmail-mining/output/inbox_message_df.txt', index=False)
+
+## alternately, load inventory df from file
+inbox_message_df=pd.read_csv('/Users/olga/Documents/google_mail_archive_07062015/gmail-mining/output/inbox_message_df.txt')
     
     
 ## plot # of messages sent/received as a function of non-olga party
-plot_df=pd.DataFrame(message_df.sender.value_counts())
-plot_df.index.name='value'
-plot_df.reset_index(inplace=True)
-plot_df.rename(columns={0:'count'}, inplace=True)
-plot_df=plot_df.head(15)
+plot_sender_count(inbox_message_df, n=15)
 
-## ggplot
-p = ggplot(plot_df, aes(x='value', y='count')) + \
-    geom_bar(stat="bar", labels = plot_df['value'].tolist()) + \
-    theme(axis_text_x=element_text(angle=90, hjust=1))
-print p    
 
-## seaborn
-sns.set_style("darkgrid")
-bar_plot = sns.barplot(x=plot_df['value'],y=plot_df['count'],
-                        palette="muted",
-                        x_order=plot_df['value'].tolist())
-plt.xticks(rotation=90)
-plt.show()
 
-plot_df.plot("value", "count", kind="barh", color=sns.color_palette("deep",3))
 
-## things to remember
 """
+Things to remember
 
 sent_out[1].is_multipart() will return true if the email is a nested message
 sent_out[1].get_payload()[0].get_payload() gets payload of 1st sub-message of the conversation
