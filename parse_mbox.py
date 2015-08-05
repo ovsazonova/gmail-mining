@@ -45,16 +45,16 @@ def inventory_mbox(mbox):
     print('Entering mbox_inventory @ '+time.strftime("%H:%M:%S"))
     multipart_count = 0
     append_index = 0
-    columns=['key','sender', 'recepient', 'payloadCharCount', 'dateTime', 'multipart','partCount']
+    columns=['key','sender', 'returnPath', 'recepient', 'payloadCharCount', 'dateTime', 'multipart','partCount']
     message_df=pd.DataFrame(data=np.zeros((0, len(columns))), columns=columns)
     for j, message in enumerate(mbox):
         #if j > 1000: break
         if message.is_multipart() is False:
-            message_df.loc[message_df.shape[0]]=[j, message['From'], message['To'], len(message.get_payload()), message['Date'], 0,0]
+            message_df.loc[message_df.shape[0]]=[j, message['From'], message['Return-path'],message['To'], len(message.get_payload()), message['Date'], 0,0]
             append_index +=1
         
         else: # inventory only the first part of a multi-part message
-            message_df.loc[message_df.shape[0]]= [j, message['From'], message['To'], len(message.get_payload()[0].get_payload()), message['Date'], 1, len(message.get_payload())]
+            message_df.loc[message_df.shape[0]]= [j, message['From'], message['Return-path'],message['To'], len(message.get_payload()[0].get_payload()), message['Date'], 1, len(message.get_payload())]
             append_index +=1
             multipart_count += 1
         
@@ -63,18 +63,18 @@ def inventory_mbox(mbox):
     
 def plot_sender_count(inbox_message_df, n):
 
-    plot_df=pd.DataFrame(inbox_message_df.sender.value_counts())
+    plot_df=pd.DataFrame(inbox_message_df.returnPath.value_counts())
     plot_df.index.name='value'
     plot_df.reset_index(inplace=True)
     plot_df.rename(columns={0:'count'}, inplace=True)
     plot_df=plot_df.head(n)
 
     ## pandas plot via matplotlib and pylab
-    plot_df.sort(ascending=0).plot("value", "count", kind="barh", color=sns.color_palette("deep",3), legend=False, title="Messages received from top "+n+" senders").set_ylabel("")
+    plot_df.sort(ascending=0).plot("value", "count", kind="barh", color=sns.color_palette("deep",3), legend=False, title="Messages received from top "+str(n)+" senders").set_ylabel("")
     plot_f= pylab.gcf()
     #plot_f.set_size_inches(8,6)
     plot_f.tight_layout()
-    plot_f.savefig("/Users/olga/Documents/google_mail_archive_07062015/gmail-mining/output/figures/inbox_top"+n+"_senders.png")
+    plot_f.savefig("/Users/olga/Documents/google_mail_archive_07062015/output/figures/inbox_top"+str(n)+"_senders.png")
     # ## ggplot
     # p = ggplot(plot_df, aes(x='value', y='count')) + \
     #     geom_bar(stat="bar", labels = plot_df['value'].tolist()) + \
@@ -107,10 +107,10 @@ sent_out=mailbox.mbox('/Users/olga/Documents/google_mail_archive_07062015/data/A
 
 ## inventory message into dataframe and save to file
 # inbox_message_df=inventory_mbox(inbox_out)
-# inbox_message_df.to_csv('/Users/olga/Documents/google_mail_archive_07062015/gmail-mining/output/inbox_message_df.txt', index=False)
+# inbox_message_df.to_csv('/Users/olga/Documents/google_mail_archive_07062015/output/inbox_message_df.txt', index=False)
 
 ## alternately, load inventory df from file
-inbox_message_df=pd.read_csv('/Users/olga/Documents/google_mail_archive_07062015/gmail-mining/output/inbox_message_df.txt')
+inbox_message_df=pd.read_csv('/Users/olga/Documents/google_mail_archive_07062015/output/inbox_message_df.txt')
     
     
 ## plot # of messages sent/received as a function of non-olga party
